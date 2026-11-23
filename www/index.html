@@ -6,14 +6,23 @@
 <title>Life Notes</title>
 <style>
   :root {
-    --bg: #06070a;
-    --card: rgba(255, 255, 255, 0.08);
-    --border: rgba(255, 255, 255, 0.18);
-    --text: #ffffff;
-    --muted: #a1a1aa;
-    --active-bg: #ffffff;
-    --active-text: #06070a;
+    --bg-base: #06070a;
+    --card-color: #ffffff;
+    --card-alpha: 0.08;
+    --glass-blur: 24px;
+    --border-color: #ffffff;
+    --border-alpha: 0.16;
+
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1aa;
+
+    --btn-border: rgba(255, 255, 255, 0.22);
+    --btn-active-bg: #ffffff;
+    --btn-active-text: #06070a;
     --danger: #f87171;
+
+    --ease-float: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-silk: cubic-bezier(0.25, 1, 0.5, 1);
   }
 
   * {
@@ -26,18 +35,51 @@
   html, body {
     width: 100%;
     height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
     overflow: hidden;
+    touch-action: manipulation;
   }
 
-  .app {
+  .wallpaper-layer {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.08) 0%, transparent 45%),
+      radial-gradient(circle at 80% 85%, rgba(255, 255, 255, 0.06) 0%, transparent 45%),
+      var(--bg-base);
+    pointer-events: none;
+  }
+
+  .wallpaper-dim {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+  }
+
+  button, input, textarea {
+    font-family: inherit;
+    touch-action: manipulation;
+  }
+
+  button {
+    transition: transform 0.3s var(--ease-float), background 0.24s var(--ease-silk), color 0.24s var(--ease-silk), border-color 0.24s var(--ease-silk);
+  }
+
+  button:active {
+    transform: scale(0.95);
+  }
+
+  .app-shell {
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding-top: env(safe-area-inset-top, 12px);
+    padding-top: env(safe-area-inset-top, 14px);
     padding-bottom: env(safe-area-inset-bottom, 12px);
   }
 
@@ -50,47 +92,62 @@
 
   .view.active {
     display: flex;
+    animation: floatIn 0.42s var(--ease-float) both;
   }
 
+  @keyframes floatIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px) scale(0.99);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* TOP BAR */
   .topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 10px;
     padding: 10px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .btn {
-    background: var(--card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 14px;
+  .pill-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--btn-border);
+    color: var(--text-primary);
+    padding: 8px 15px;
     border-radius: 999px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+    white-space: nowrap;
   }
 
-  .btn.primary {
-    background: var(--active-bg);
-    color: var(--active-text);
-    border-color: var(--active-bg);
+  .pill-btn.active-btn {
+    background: var(--btn-active-bg);
+    color: var(--btn-active-text);
+    border-color: var(--btn-active-bg);
     font-weight: 700;
   }
 
-  .path-label {
+  .path-chip {
     flex: 1;
-    font-size: 12px;
-    color: var(--muted);
+    font-size: 11.5px;
+    color: var(--text-secondary);
     text-align: center;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .title-box {
-    padding: 10px 16px;
+  /* FULLSCREEN EDITOR */
+  .title-wrap {
+    padding: 12px 16px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
@@ -99,372 +156,515 @@
     background: transparent;
     border: none;
     outline: none;
-    color: var(--text);
-    font-size: 19px;
+    color: var(--text-primary);
+    font-size: 20px;
     font-weight: 700;
+    letter-spacing: -0.2px;
   }
 
-  .body-box {
+  .title-input::placeholder {
+    color: rgba(255, 255, 255, 0.34);
+  }
+
+  .body-wrap {
     flex: 1;
     min-height: 0;
-    padding: 12px 16px;
+    padding: 12px 16px 14px;
     display: flex;
   }
 
-  .note-area {
+  .note-textarea {
     width: 100%;
     height: 100%;
     background: transparent;
     border: none;
     outline: none;
     resize: none;
-    color: var(--text);
+    color: var(--text-primary);
     font-size: 15.5px;
-    line-height: 1.55;
+    line-height: 1.6;
   }
 
-  .list-wrap {
+  .note-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  /* NOTES LIST */
+  .search-wrap {
+    padding: 10px 14px 6px;
+  }
+
+  .search-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--btn-border);
+    border-radius: 15px;
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+  }
+
+  .notes-list {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 12px 14px;
+    padding: 8px 14px 18px;
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
 
-  .note-item {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 14px;
+  .note-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 20px;
+    padding: 14px 16px;
     cursor: pointer;
+    transition: transform 0.28s var(--ease-float), border-color 0.22s var(--ease-silk);
   }
 
-  .note-item-title {
+  .note-card:active {
+    transform: scale(0.98);
+  }
+
+  .note-card.pressing {
+    transform: scale(0.965);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .note-card-title {
     font-size: 15px;
     font-weight: 700;
     margin-bottom: 4px;
   }
 
-  .note-item-sub {
-    font-size: 12px;
-    color: var(--muted);
-    white-space: nowrap;
+  .note-card-preview {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 
+  .note-card-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    opacity: 0.75;
+    margin-top: 7px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 16px;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+  }
+
+  /* ANDROID 17 FLOATING ACTION SHEET */
   .sheet-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.65);
-    display: none;
+    z-index: 3000;
+    background: rgba(3, 4, 7, 0);
+    opacity: 0;
+    pointer-events: none;
+    display: flex;
     align-items: flex-end;
     justify-content: center;
-    padding: 14px;
-    z-index: 999;
+    padding: 12px;
+    transition: opacity 0.34s var(--ease-silk), background 0.34s var(--ease-silk);
   }
 
   .sheet-backdrop.open {
-    display: flex;
+    opacity: 1;
+    pointer-events: auto;
+    background: rgba(3, 4, 7, 0.65);
   }
 
-  .sheet {
+  .sheet-card {
     width: 100%;
-    max-width: 480px;
-    background: #12151d;
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    max-width: 500px;
+    background: #12151e;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 28px;
+    padding: 16px 18px 20px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.78);
+    transform: translateY(30px) scale(0.96);
+    opacity: 0;
+    transition: transform 0.44s var(--ease-float), opacity 0.28s var(--ease-silk);
+  }
+
+  .sheet-backdrop.open .sheet-card {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  .sheet-handle {
+    width: 38px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    margin: 0 auto 12px;
+  }
+
+  .sheet-title {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .sheet-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    margin-bottom: 14px;
   }
 
   .sheet-btn {
     width: 100%;
-    padding: 12px;
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text);
+    padding: 13px;
+    border-radius: 15px;
+    border: 1px solid var(--btn-border);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    margin-top: 8px;
   }
 
-  .sheet-btn.del {
+  .sheet-btn.primary {
+    background: var(--btn-active-bg);
+    color: var(--btn-active-text);
+    border-color: var(--btn-active-bg);
+    font-weight: 700;
+  }
+
+  .sheet-btn.danger {
     color: var(--danger);
-    border-color: rgba(248, 113, 113, 0.4);
+    border-color: rgba(248, 113, 113, 0.45);
+    background: rgba(248, 113, 113, 0.14);
   }
 
   .toast {
     position: fixed;
     bottom: 24px;
     left: 50%;
-    transform: translateX(-50%);
-    background: #181c26;
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 9px 16px;
+    transform: translateX(-50%) translateY(14px);
+    background: rgba(16, 19, 27, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: var(--text-primary);
+    padding: 10px 18px;
     border-radius: 999px;
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 600;
-    display: none;
-    z-index: 1000;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.36s var(--ease-float), opacity 0.26s var(--ease-silk);
+    white-space: nowrap;
   }
 
   .toast.show {
-    display: block;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 </style>
 </head>
 <body>
-<div class="app">
-  <!-- EDITOR -->
-  <section id="editorView" class="view active">
+<div class="wallpaper-layer"></div>
+<div class="wallpaper-dim"></div>
+
+<div class="app-shell">
+  <!-- FULLSCREEN EDITOR -->
+  <section id="viewEditor" class="view active">
     <div class="topbar">
-      <button type="button" class="btn" id="btnNotes">Notes</button>
-      <span class="path-label" id="pathLabel">/storage/emulated/0/LifeNotes</span>
-      <button type="button" class="btn primary" id="btnSave">Save</button>
+      <button type="button" class="pill-btn" id="btnShowList">Notes</button>
+      <span class="path-chip" id="pathLabel">/storage/emulated/0/LifeNotes</span>
+      <button type="button" class="pill-btn active-btn" id="btnSaveNote">Save</button>
     </div>
-    <div class="title-box">
-      <input type="text" id="titleInput" class="title-input" placeholder="Title (saves as .txt)" autocomplete="off">
+
+    <div class="title-wrap">
+      <input type="text" id="noteTitle" class="title-input" placeholder="Note title (saves as .txt)..." autocomplete="off">
     </div>
-    <div class="body-box">
-      <textarea id="bodyInput" class="note-area" placeholder="Write your note here..."></textarea>
+
+    <div class="body-wrap">
+      <textarea id="noteBody" class="note-textarea" placeholder="Write your note here..."></textarea>
     </div>
   </section>
 
-  <!-- LIST -->
-  <section id="listView" class="view">
+  <!-- SAVED NOTES LIST -->
+  <section id="viewList" class="view">
     <div class="topbar">
-      <button type="button" class="btn" id="btnBackEditor">Editor</button>
-      <span class="path-label">Saved .txt Notes</span>
-      <button type="button" class="btn primary" id="btnNew">+ New</button>
+      <button type="button" class="pill-btn" id="btnBackEditor">Editor</button>
+      <span class="path-chip">/storage/emulated/0/LifeNotes</span>
+      <button type="button" class="pill-btn active-btn" id="btnNewNote">+ New</button>
     </div>
-    <div class="list-wrap" id="listWrap"></div>
+
+    <div class="search-wrap">
+      <input type="text" id="searchInput" class="search-input" placeholder="Search saved notes...">
+    </div>
+
+    <div class="notes-list" id="notesList"></div>
   </section>
 </div>
 
-<!-- LONG PRESS SHEET -->
-<div class="sheet-backdrop" id="sheetBackdrop">
-  <div class="sheet">
-    <div id="sheetTitle" style="font-size:15px; font-weight:700;">Note</div>
-    <button type="button" class="sheet-btn" id="sheetOpenBtn">Open</button>
-    <button type="button" class="sheet-btn del" id="sheetDeleteBtn">Delete</button>
+<!-- LONG PRESS ACTION SHEET -->
+<div id="actionSheet" class="sheet-backdrop">
+  <div class="sheet-card">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheetTitle">Note</div>
+    <div class="sheet-sub" id="sheetSub">/storage/emulated/0/LifeNotes</div>
+    <button type="button" class="sheet-btn primary" id="sheetOpenBtn">Open & Edit</button>
+    <button type="button" class="sheet-btn danger" id="sheetDeleteBtn">Delete File</button>
     <button type="button" class="sheet-btn" id="sheetCancelBtn">Cancel</button>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div id="toast" class="toast"></div>
 
 <script>
   (function () {
-    const STORAGE_KEY = "lifenotes_v2_items";
-    let activeFileName = "";
-    let selectedFileName = "";
-    let notes = [];
+    const FALLBACK_KEY = "lifenotes_v3_store";
+    let currentFile = "";
+    let selectedFile = "";
+    let notesCache = [];
 
-    function toast(msg) {
-      const el = document.getElementById("toast");
-      el.textContent = msg;
-      el.classList.add("show");
-      clearTimeout(toast._t);
-      toast._t = setTimeout(() => el.classList.remove("show"), 1800);
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => t.classList.remove("show"), 2000);
     }
 
-    function makeTxtName(title) {
-      const clean = (title || "Untitled")
+    function sanitizeFileName(raw) {
+      const clean = (raw || "Untitled")
         .trim()
         .replace(/[\\/:*?"<>|]+/g, "_")
+        .replace(/\s+/g, " ")
         .slice(0, 80);
       return (clean || "Untitled") + ".txt";
     }
 
-    function nativeBridge() {
+    function getBridge() {
       return window.AndroidNotes && typeof window.AndroidNotes.saveNote === "function"
         ? window.AndroidNotes
         : null;
     }
 
-    function loadNotes() {
-      const bridge = nativeBridge();
-      if (bridge) {
-        try {
-          notes = JSON.parse(bridge.listNotes() || "[]");
-          return;
-        } catch (e) {}
-      }
+    function readFallback() {
       try {
-        notes = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        return JSON.parse(localStorage.getItem(FALLBACK_KEY) || "[]");
       } catch (e) {
-        notes = [];
+        return [];
       }
     }
 
-    function saveFallback() {
+    function writeFallback(arr) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+        localStorage.setItem(FALLBACK_KEY, JSON.stringify(arr));
       } catch (e) {}
     }
 
-    function showView(id) {
-      document.getElementById("editorView").classList.toggle("active", id === "editorView");
-      document.getElementById("listView").classList.toggle("active", id === "listView");
+    function syncNotes() {
+      const bridge = getBridge();
+      if (bridge) {
+        try {
+          notesCache = JSON.parse(bridge.listNotes() || "[]");
+          return;
+        } catch (e) {}
+      }
+      notesCache = readFallback();
+    }
+
+    function switchView(id) {
+      document.getElementById("viewEditor").classList.toggle("active", id === "viewEditor");
+      document.getElementById("viewList").classList.toggle("active", id === "viewList");
     }
 
     function saveNote() {
-      const rawTitle = document.getElementById("titleInput").value.trim() || "Untitled";
-      const content = document.getElementById("bodyInput").value;
-      const fileName = makeTxtName(rawTitle);
-      const bridge = nativeBridge();
+      const rawTitle = document.getElementById("noteTitle").value.trim() || "Untitled";
+      const content = document.getElementById("noteBody").value;
+      const fileName = sanitizeFileName(rawTitle);
+      const bridge = getBridge();
 
       if (bridge) {
-        if (activeFileName && activeFileName !== fileName) {
-          bridge.deleteNote(activeFileName);
+        if (currentFile && currentFile !== fileName) {
+          bridge.deleteNote(currentFile);
         }
         const ok = bridge.saveNote(fileName, content);
         if (ok) {
-          activeFileName = fileName;
+          currentFile = fileName;
           document.getElementById("pathLabel").textContent = "/LifeNotes/" + fileName;
-          loadNotes();
-          toast("Saved: " + fileName);
+          syncNotes();
+          showToast("Saved: " + fileName);
         } else {
-          toast("Save failed — check file permission");
+          showToast("Permission needed to save file");
         }
         return;
       }
 
-      notes = notes.filter(n => n.fileName !== activeFileName && n.fileName !== fileName);
-      notes.unshift({ fileName, title: rawTitle, content });
-      saveFallback();
-      activeFileName = fileName;
+      const list = readFallback().filter(n => n.fileName !== currentFile && n.fileName !== fileName);
+      list.unshift({
+        fileName,
+        content,
+        updatedAt: new Date().toLocaleString()
+      });
+      writeFallback(list);
+      notesCache = list;
+      currentFile = fileName;
       document.getElementById("pathLabel").textContent = "/LifeNotes/" + fileName;
-      toast("Saved: " + fileName);
+      showToast("Saved: " + fileName);
     }
 
     function openNote(fileName) {
+      const bridge = getBridge();
       let text = "";
-      const bridge = nativeBridge();
       if (bridge) {
         text = bridge.readNote(fileName) || "";
       } else {
-        const found = notes.find(n => n.fileName === fileName);
+        const found = readFallback().find(n => n.fileName === fileName);
         text = found ? found.content : "";
       }
-      activeFileName = fileName;
-      document.getElementById("titleInput").value = fileName.replace(/\.txt$/i, "");
-      document.getElementById("bodyInput").value = text;
+      currentFile = fileName;
+      document.getElementById("noteTitle").value = fileName.replace(/\.txt$/i, "");
+      document.getElementById("noteBody").value = text;
       document.getElementById("pathLabel").textContent = "/LifeNotes/" + fileName;
-      showView("editorView");
+      switchView("viewEditor");
+    }
+
+    function resetEditor() {
+      currentFile = "";
+      document.getElementById("noteTitle").value = "";
+      document.getElementById("noteBody").value = "";
+      document.getElementById("pathLabel").textContent = "/storage/emulated/0/LifeNotes";
+      switchView("viewEditor");
     }
 
     function deleteNote(fileName) {
-      const bridge = nativeBridge();
+      const bridge = getBridge();
       if (bridge) {
         bridge.deleteNote(fileName);
-        loadNotes();
+        syncNotes();
       } else {
-        notes = notes.filter(n => n.fileName !== fileName);
-        saveFallback();
+        const updated = readFallback().filter(n => n.fileName !== fileName);
+        writeFallback(updated);
+        notesCache = updated;
       }
-      if (activeFileName === fileName) {
-        activeFileName = "";
-        document.getElementById("titleInput").value = "";
-        document.getElementById("bodyInput").value = "";
-        document.getElementById("pathLabel").textContent = "/storage/emulated/0/LifeNotes";
+      if (currentFile === fileName) {
+        resetEditor();
       }
       renderList();
-      toast("Deleted: " + fileName);
+      showToast("Deleted: " + fileName);
     }
 
-    function openSheet(fileName) {
-      selectedFileName = fileName;
-      document.getElementById("sheetTitle").textContent = fileName;
-      document.getElementById("sheetBackdrop").classList.add("open");
+    function openActionSheet(fileName) {
+      selectedFile = fileName;
+      document.getElementById("sheetTitle").textContent = fileName.replace(/\.txt$/i, "");
+      document.getElementById("sheetSub").textContent = "/storage/emulated/0/LifeNotes/" + fileName;
+      requestAnimationFrame(() => document.getElementById("actionSheet").classList.add("open"));
     }
 
-    function closeSheet() {
-      document.getElementById("sheetBackdrop").classList.remove("open");
+    function closeActionSheet() {
+      document.getElementById("actionSheet").classList.remove("open");
     }
 
     function renderList() {
-      loadNotes();
-      const wrap = document.getElementById("listWrap");
+      syncNotes();
+      const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
+      const wrap = document.getElementById("notesList");
       wrap.innerHTML = "";
 
-      if (!notes.length) {
-        wrap.innerHTML = '<div style="text-align:center; color:#a1a1aa; padding:32px;">No .txt files yet</div>';
+      const filtered = notesCache.filter(item =>
+        (item.fileName || "").toLowerCase().includes(q) ||
+        (item.content || "").toLowerCase().includes(q)
+      );
+
+      if (!filtered.length) {
+        wrap.innerHTML = '<div class="empty-state">No .txt notes found in /storage/emulated/0/LifeNotes</div>';
         return;
       }
 
-      notes.forEach(item => {
-        const row = document.createElement("div");
-        row.className = "note-item";
-        row.innerHTML = `
-          <div class="note-item-title">${item.fileName.replace(/\.txt$/i, "")}</div>
-          <div class="note-item-sub">${(item.content || "").replace(/\n+/g, " ") || "Empty note"}</div>
+      filtered.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "note-card";
+        const displayTitle = (item.fileName || "Untitled.txt").replace(/\.txt$/i, "");
+        card.innerHTML = `
+          <div class="note-card-title">${displayTitle}</div>
+          <div class="note-card-preview">${(item.content || "").trim() || "Empty note"}</div>
+          <div class="note-card-meta">${item.fileName}${item.updatedAt ? " • " + item.updatedAt : ""}</div>
         `;
 
         let pressTimer = null;
         let longPressed = false;
+        let sx = 0, sy = 0;
 
-        row.addEventListener("pointerdown", () => {
+        const clearPress = () => {
+          clearTimeout(pressTimer);
+          card.classList.remove("pressing");
+        };
+
+        card.addEventListener("pointerdown", (e) => {
           longPressed = false;
+          sx = e.clientX;
+          sy = e.clientY;
+          card.classList.add("pressing");
           pressTimer = setTimeout(() => {
             longPressed = true;
-            openSheet(item.fileName);
+            card.classList.remove("pressing");
+            if (navigator.vibrate) navigator.vibrate(25);
+            openActionSheet(item.fileName);
           }, 450);
         });
 
-        row.addEventListener("pointerup", () => {
-          clearTimeout(pressTimer);
-          if (!longPressed) openNote(item.fileName);
+        card.addEventListener("pointermove", (e) => {
+          if (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10) clearPress();
         });
 
-        row.addEventListener("pointercancel", () => clearTimeout(pressTimer));
-        row.addEventListener("contextmenu", (e) => {
+        card.addEventListener("pointerup", () => {
+          const wasLong = longPressed;
+          clearPress();
+          if (!wasLong) openNote(item.fileName);
+        });
+
+        card.addEventListener("pointercancel", clearPress);
+        card.addEventListener("contextmenu", (e) => {
           e.preventDefault();
-          clearTimeout(pressTimer);
-          openSheet(item.fileName);
+          clearPress();
+          openActionSheet(item.fileName);
         });
 
-        wrap.appendChild(row);
+        wrap.appendChild(card);
       });
     }
 
-    document.getElementById("btnSave").addEventListener("click", saveNote);
-    document.getElementById("btnNotes").addEventListener("click", () => {
+    document.getElementById("btnSaveNote").addEventListener("click", saveNote);
+    document.getElementById("btnShowList").addEventListener("click", () => {
       renderList();
-      showView("listView");
+      switchView("viewList");
     });
-    document.getElementById("btnBackEditor").addEventListener("click", () => showView("editorView"));
-    document.getElementById("btnNew").addEventListener("click", () => {
-      activeFileName = "";
-      document.getElementById("titleInput").value = "";
-      document.getElementById("bodyInput").value = "";
-      document.getElementById("pathLabel").textContent = "/storage/emulated/0/LifeNotes";
-      showView("editorView");
-    });
+    document.getElementById("btnBackEditor").addEventListener("click", () => switchView("viewEditor"));
+    document.getElementById("btnNewNote").addEventListener("click", resetEditor);
+    document.getElementById("searchInput").addEventListener("input", renderList);
 
     document.getElementById("sheetOpenBtn").addEventListener("click", () => {
-      const f = selectedFileName;
-      closeSheet();
+      const f = selectedFile;
+      closeActionSheet();
       openNote(f);
     });
     document.getElementById("sheetDeleteBtn").addEventListener("click", () => {
-      const f = selectedFileName;
-      closeSheet();
+      const f = selectedFile;
+      closeActionSheet();
       deleteNote(f);
     });
-    document.getElementById("sheetCancelBtn").addEventListener("click", closeSheet);
-    document.getElementById("sheetBackdrop").addEventListener("click", (e) => {
-      if (e.target.id === "sheetBackdrop") closeSheet();
+    document.getElementById("sheetCancelBtn").addEventListener("click", closeActionSheet);
+    document.getElementById("actionSheet").addEventListener("click", (e) => {
+      if (e.target.id === "actionSheet") closeActionSheet();
     });
 
-    loadNotes();
+    syncNotes();
   })();
 </script>
 </body>
