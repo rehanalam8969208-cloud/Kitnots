@@ -1,0 +1,119 @@
+name: Build Life Notes APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Prepare Android project & build APK
+        run: |
+          mkdir -p android-project/app/src/main/java/com/example/lifenotes
+          mkdir -p android-project/app/src/main/res/values
+          mkdir -p android-project/app/src/main/assets/www
+
+          cp www/index.html android-project/app/src/main/assets/www/index.html
+          cp MainActivity.java android-project/app/src/main/java/com/example/lifenotes/MainActivity.java
+
+          cat << 'EOF' > android-project/settings.gradle
+          rootProject.name = "LifeNotes"
+          include ':app'
+          EOF
+
+          cat << 'EOF' > android-project/build.gradle
+          plugins {
+              id 'com.android.application' version '8.5.2' apply false
+          }
+          EOF
+
+          cat << 'EOF' > android-project/app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.example.lifenotes'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId "com.example.lifenotes"
+                  minSdk 24
+                  targetSdk 35
+                  versionCode 1
+                  versionName "1.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+                  debug {
+                      minifyEnabled false
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.7.0'
+          }
+          EOF
+
+          cat << 'EOF' > android-project/app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">Life Notes</string>
+          </resources>
+          EOF
+
+          cat << 'EOF' > android-project/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
+              <application
+                  android:allowBackup="true"
+                  android:label="@string/app_name"
+                  android:requestLegacyExternalStorage="true"
+                  android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          gradle --version || true
+          cd android-project
+          gradle assembleDebug --no-daemon
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LifeNotes-debug-apk
+          path: android-project/app/build/outputs/apk/debug/app-debug.apk
