@@ -1,10 +1,13 @@
 package com.example.lifenotes;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.Settings;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -26,7 +29,7 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int FILE_PERMISSION_CODE = 101;
+    private static final int REQ_STORAGE = 101;
     private WebView webView;
 
     @Override
@@ -45,53 +48,56 @@ public class MainActivity extends AppCompatActivity {
         webView.addJavascriptInterface(new NotesBridge(), "AndroidNotes");
         webView.loadUrl("file:///android_asset/www/index.html");
 
-        requestFilePermission();
-        createNotesFolderIfPermitted();
+        requestStorageAccess();
+        createFolderIfReady();
     }
 
-    private String[] getRequiredFilePermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return new String[]{
-                    Manifest.permission.READ_MEDIA_IMAGES,
-                    Manifest.permission.READ_MEDIA_VIDEO,
-                    Manifest.permission.READ_MEDIA_AUDIO
-            };
-        }
-        return new String[]{
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-        };
+    @Override
+    protected void onResume() {
+        super.onResume();
+        createFolderIfReady();
     }
 
-    private boolean hasFilePermission() {
-        for (String perm : getRequiredFilePermissions()) {
-            if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
-                return false;
+    private void requestStorageAccess() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                    startActivity(intent);
+                }
             }
-        }
-        return true;
-    }
-
-    private void requestFilePermission() {
-        if (!hasFilePermission()) {
-            ActivityCompat.requestPermissions(this, getRequiredFilePermissions(), FILE_PERMISSION_CODE);
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{
+                                Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        },
+                        REQ_STORAGE
+                );
+            }
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == FILE_PERMISSION_CODE) {
-            createNotesFolderIfPermitted();
+        if (requestCode == REQ_STORAGE) {
+            createFolderIfReady();
         }
     }
 
     private File getNotesFolder() {
-        File base = Environment.getExternalStorageDirectory(); // /storage/emulated/0
-        return new File(base, "LifeNotes");
+        return new File(Environment.getExternalStorageDirectory(), "LifeNotes");
     }
 
-    private void createNotesFolderIfPermitted() {
+    private void createFolderIfReady() {
         File dir = getNotesFolder();
         if (!dir.exists()) {
             //noinspection ResultOfMethodCallIgnored
@@ -104,7 +110,6 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public boolean saveNote(String fileName, String content) {
             try {
-                createNotesFolderIfPermitted();
                 File dir = getNotesFolder();
                 if (!dir.exists() && !dir.mkdirs()) {
                     return false;
