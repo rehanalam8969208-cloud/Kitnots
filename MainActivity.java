@@ -9,6 +9,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -25,13 +26,12 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int FILE_PERMISSION_CODE = 101;
     private WebView webView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        requestStoragePermissions();
 
         webView = new WebView(this);
         setContentView(webView);
@@ -44,32 +44,59 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient());
         webView.addJavascriptInterface(new NotesBridge(), "AndroidNotes");
         webView.loadUrl("file:///android_asset/www/index.html");
+
+        requestFilePermission();
+        createNotesFolderIfPermitted();
     }
 
-    private void requestStoragePermissions() {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                        this,
-                        new String[]{
-                                Manifest.permission.READ_EXTERNAL_STORAGE,
-                                Manifest.permission.WRITE_EXTERNAL_STORAGE
-                        },
-                        101
-                );
+    private String[] getRequiredFilePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return new String[]{
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO,
+                    Manifest.permission.READ_MEDIA_AUDIO
+            };
+        }
+        return new String[]{
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        };
+    }
+
+    private boolean hasFilePermission() {
+        for (String perm : getRequiredFilePermissions()) {
+            if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+                return false;
             }
+        }
+        return true;
+    }
+
+    private void requestFilePermission() {
+        if (!hasFilePermission()) {
+            ActivityCompat.requestPermissions(this, getRequiredFilePermissions(), FILE_PERMISSION_CODE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == FILE_PERMISSION_CODE) {
+            createNotesFolderIfPermitted();
         }
     }
 
     private File getNotesFolder() {
         File base = Environment.getExternalStorageDirectory(); // /storage/emulated/0
-        File dir = new File(base, "LifeNotes");
+        return new File(base, "LifeNotes");
+    }
+
+    private void createNotesFolderIfPermitted() {
+        File dir = getNotesFolder();
         if (!dir.exists()) {
             //noinspection ResultOfMethodCallIgnored
             dir.mkdirs();
         }
-        return dir;
     }
 
     public class NotesBridge {
@@ -77,7 +104,11 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public boolean saveNote(String fileName, String content) {
             try {
+                createNotesFolderIfPermitted();
                 File dir = getNotesFolder();
+                if (!dir.exists() && !dir.mkdirs()) {
+                    return false;
+                }
                 File file = new File(dir, fileName);
                 try (FileOutputStream fos = new FileOutputStream(file, false)) {
                     fos.write(content.getBytes(StandardCharsets.UTF_8));
